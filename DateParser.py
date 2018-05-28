@@ -36,59 +36,6 @@ class AWSDataService:
         db_string = 'postgres://dbuser01:nice1255@postgres01.ct6obuhakepv.us-east-1.rds.amazonaws.com:5432/gdb'
         self.engine = create_engine(db_string)
 
-    def create_db(self):
-        db_identifier = 'yourDBID'
-        rds = boto3.client('rds')
-        try:
-            rds.create_db_instance(DBInstanceIdentifier=db_identifier,
-                                   AllocatedStorage=200,
-                                   DBName='yourdbname',
-                                   Engine='postgres',
-                                   # General purpose SSD
-                                   StorageType='gp2',
-                                   StorageEncrypted=True,
-                                   AutoMinorVersionUpgrade=True,
-                                   MultiAZ=False,
-                                   MasterUsername='youruser',
-                                   MasterUserPassword='yourpassword',
-                                   VpcSecurityGroupIds=['YOUR_SECURITY_GROUP_ID'],
-                                   DBInstanceClass='db.m3.2xlarge',
-                                   Tags=[{'Key': 'MyTag', 'Value': 'Hawaii'}])
-            print 'Starting RDS instance with ID: %s' % db_identifier
-        except botocore.exceptions.ClientError as e:
-            if 'DBInstanceAlreadyExists' in e.message:
-                print 'DB instance %s exists already, continuing to poll ...' % db_identifier
-            else:
-                raise
-
-        running = True
-        while running:
-            response = rds.describe_db_instances(DBInstanceIdentifier=db_identifier)
-
-            db_instances = response['DBInstances']
-            if len(db_instances) != 1:
-                raise Exception('Whoa cowboy! More than one DB instance returned; this should never happen')
-
-            db_instance = db_instances[0]
-
-            status = db_instance['DBInstanceStatus']
-
-            print 'Last DB status: %s' % status
-
-            time.sleep(5)
-            if status == 'available':
-                endpoint = db_instance['Endpoint']
-                host = endpoint['Address']
-                # port = endpoint['Port']
-
-                print 'DB instance ready with host: %s' % host
-                running = False
-
-    def create_table(self):
-        pass
-
-    def drop_db(self):
-        pass
 
     def post(self, df, table_name):
         df.to_sql(table_name, self.engine, if_exists='append', index=False)
